@@ -250,6 +250,17 @@ Pruebas de JavaScript (hora del día, geometría 3D, guías, lobby; sin dependen
 
 Corré `php artisan formosa:chequeo --produccion`: revisa todo lo de abajo y sale con error si algo grave falta (sirve en un script de despliegue).
 
+### Desplegar en Render
+
+El archivo [`render.yaml`](./render.yaml) define la aplicación web, una base PostgreSQL, Reverb (WebSocket), el reloj del juego y el planificador. El [`Dockerfile`](./Dockerfile) compila los recursos de Vite e instala PHP con soporte para PostgreSQL.
+
+1. Subí este repositorio a GitHub y en Render elegí **New > Blueprint**, conectá el repositorio y confirmá los recursos declarados. El Blueprint crea recursos `starter` y una base `basic-256mb`, que son planes pagos de Render; revisá los precios antes de aprobarlos.
+2. El primer despliegue ejecuta `php artisan migrate --force`. No carga datos de demostración: registrá una cuenta y, si querés poblar el mapa, importalo después desde los comandos de administración.
+3. El Blueprint genera `APP_KEY` y las credenciales de Reverb en un grupo de entorno compartido. No las reemplaces por las claves de ejemplo del `.env.example`. Si elegís otro nombre de servicio o dominio, actualizá `APP_URL`, `REVERB_ALLOWED_ORIGINS` y `VITE_REVERB_HOST` en ese grupo; el host de Reverb para el servidor Laravel (`REVERB_HOST`) debe seguir siendo su nombre privado interno.
+4. Configurá un correo SMTP en el servicio web si vas a habilitar verificación de cuentas o recuperación de contraseña. En Render, agregá `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_SCHEME` y `MAIL_FROM_ADDRESS` como variables secretas.
+
+Render usa PostgreSQL administrado y conserva sesiones y caché en la base. Reverb, el reloj de un segundo y el planificador corren como servicios separados. Para comprobar la instalación, ejecutá `php artisan formosa:chequeo --produccion` desde la consola del servicio web. Si importás datos nuevos del mapa, asegurate de publicar también sus archivos estáticos con `php artisan mapa:publicar`.
+
 **Configuración**
 - `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` con `https`, `SESSION_SECURE_COOKIE=true`.
 - Claves propias de Reverb (`REVERB_APP_KEY`/`SECRET`): con las de ejemplo la aplicación se niega a arrancar en producción. `REVERB_ALLOWED_ORIGINS=tu-dominio.com`.
