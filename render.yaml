@@ -1,0 +1,111 @@
+databases:
+  - name: formosa-tycoon-db
+    plan: basic-256mb
+    databaseName: formosa_tycoon
+    user: formosa_tycoon
+
+envVarGroups:
+  - name: formosa-tycoon-shared
+    envVars:
+      - key: APP_NAME
+        value: Formosa Tycoon
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        value: https://formosa-tycoon.onrender.com
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: info
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: BROADCAST_CONNECTION
+        value: reverb
+      - key: TRUSTED_PROXIES
+        value: "*"
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: REVERB_APP_ID
+        value: formosa-tycoon
+      - key: REVERB_APP_KEY
+        generateValue: true
+      - key: REVERB_APP_SECRET
+        generateValue: true
+      - key: REVERB_ALLOWED_ORIGINS
+        value: formosa-tycoon.onrender.com
+      - key: REVERB_SERVER_HOST
+        value: 0.0.0.0
+      - key: REVERB_SERVER_PORT
+        value: "10000"
+      - key: REVERB_HOST
+        value: formosa-tycoon-reverb
+      - key: REVERB_PORT
+        value: "10000"
+      - key: REVERB_SCHEME
+        value: http
+      - key: VITE_REVERB_HOST
+        value: formosa-tycoon-reverb.onrender.com
+      - key: VITE_REVERB_PORT
+        value: "443"
+      - key: VITE_REVERB_SCHEME
+        value: https
+
+services:
+  - type: web
+    name: formosa-tycoon
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
+    preDeployCommand: php artisan migrate --force
+    envVars:
+      - fromGroup: formosa-tycoon-shared
+      - key: DB_URL
+        fromDatabase:
+          name: formosa-tycoon-db
+          property: connectionString
+
+  - type: web
+    name: formosa-tycoon-reverb
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerCommand: php artisan reverb:start --host=0.0.0.0 --port=10000
+    envVars:
+      - fromGroup: formosa-tycoon-shared
+
+  - type: worker
+    name: formosa-tycoon-clock
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerCommand: php artisan juego:reloj --cada=1
+    envVars:
+      - fromGroup: formosa-tycoon-shared
+      - key: DB_URL
+        fromDatabase:
+          name: formosa-tycoon-db
+          property: connectionString
+
+  - type: worker
+    name: formosa-tycoon-scheduler
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerCommand: php artisan schedule:work
+    envVars:
+      - fromGroup: formosa-tycoon-shared
+      - key: DB_URL
+        fromDatabase:
+          name: formosa-tycoon-db
+          property: connectionString
