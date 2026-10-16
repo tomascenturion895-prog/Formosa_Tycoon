@@ -418,6 +418,47 @@ export const GUIDES = [
         },
     },
     {
+        id: 'partida-mejoras',
+        place: 'partida',
+        title: 'Mejoras',
+        summary: 'Invertir en tus propiedades, elegir un perfil y pagar el mantenimiento.',
+        version: 1,
+        auto: false,
+        available: ({ cfg }) => Boolean(cfg.upgrades),
+        steps: ({ cfg }) => {
+            const u = cfg.upgrades;
+            const kinds = Object.entries(u.kinds);
+            const levels = kinds[0]?.[1].levels ?? [];
+            const n1 = levels.find((l) => l.level === 1) ?? { costPct: 0, boostPct: 0, maintPct: 0 };
+            const a = levels.find((l) => l.branch === 'a') ?? { costPct: 0, boostPct: 0, maintPct: 0 };
+            const b = levels.find((l) => l.branch === 'b') ?? { costPct: 0, boostPct: 0, maintPct: 0 };
+            const logistics = u.kinds.supermercado?.levels.find((l) => l.branch === 'b')?.label ?? 'centro logístico';
+            const kindName = (k) => cfg.kinds?.[k]?.label ?? k.charAt(0).toUpperCase() + k.slice(1);
+            const branches = kinds.map(([k, v]) => {
+                const la = v.levels.find((l) => l.branch === 'a');
+                const lb = v.levels.find((l) => l.branch === 'b');
+                return `${kindName(k)}: ${la?.label} o ${lb?.label} (${v.branchBEffect})`;
+            }).join(' ');
+            return [
+                {
+                    title: 'Dos niveles de mejora',
+                    text: `Tocá una propiedad tuya y mirá el bloque Mejoras. El nivel 1 (Reformada) cuesta el ${n1.costPct} % del precio de lista y sube su ingreso un ${n1.boostPct} %. Después podés pasar al nivel 2 eligiendo una especialización. Se sube de a un nivel y no se deshace.`,
+                    targets: ['#panel-upgrades', '#panel'],
+                },
+                {
+                    title: 'Elegí una especialización',
+                    text: `En el nivel 2 elegís entre dos ramas. La primera rinde más (hasta +${a.boostPct} % de ingreso) pero cuesta ${a.costPct} % del precio y pide más mantenimiento; la segunda rinde +${b.boostPct} %, cuesta ${b.costPct} % y tiene ventajas propias. ${branches}`,
+                    targets: ['#up-options', '#panel-upgrades'],
+                },
+                {
+                    title: 'Mantenimiento y neto',
+                    text: `Cada mejora tiene un mantenimiento diario (${n1.maintPct} % en el nivel 1, entre ${b.maintPct} % y ${a.maintPct} % en el 2) que se resta de su ingreso: el número que ves es neto y nunca baja de cero. Las crisis te pegan más cuanto más caro sea el mantenimiento. Si vendés al banco perdés la mejora, y en tu patrimonio cada peso invertido cuenta el ${u.netWorthPct} %. ${u.discountPct > 0 ? `Con un ${logistics}, tus mejoras cuestan ${u.discountPct} % menos.` : ''}`.trim(),
+                    targets: ['#up-net', '#panel-upgrades'],
+                },
+            ];
+        },
+    },
+    {
         id: 'partida-herramientas',
         place: 'partida',
         title: 'Herramientas del mapa',

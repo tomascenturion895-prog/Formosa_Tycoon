@@ -132,6 +132,8 @@ Route::prefix('api')->middleware(['auth', 'verificado', 'throttle:jugar'])->grou
         ->where(['match' => '[0-9]{1,15}', 'property' => '[0-9]{1,15}'])->name('api.comprar');
     Route::post('/partidas/{match}/propiedades/{property}/vender', [GameController::class, 'sell'])
         ->where(['match' => '[0-9]{1,15}', 'property' => '[0-9]{1,15}'])->name('api.vender');
+    Route::post('/partidas/{match}/propiedades/{property}/mejorar', [GameController::class, 'upgrade'])
+        ->where(['match' => '[0-9]{1,15}', 'property' => '[0-9]{1,15}'])->name('api.mejorar');
     Route::post('/partidas/{match}/subastas/{auction}/pujar', [AuctionController::class, 'bid'])
         ->where(['match' => '[0-9]{1,15}', 'auction' => '[0-9]{1,15}'])->name('api.subastas.pujar');
     Route::post('/partidas/{match}/propiedades/{property}/ofertar', [OfferController::class, 'store'])

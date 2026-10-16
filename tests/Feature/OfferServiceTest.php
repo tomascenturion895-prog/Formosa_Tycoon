@@ -435,7 +435,7 @@ class OfferServiceTest extends TestCase
         $this->assertSame(8000, $items[0]['amount']);
         $offer = Event::dispatched(OfferUpdated::class)->first()[0]->offer;
         $this->assertEqualsCanonicalizing(
-            ['id', 'match_id', 'property_id', 'status', 'seller_id', 'seller', 'min_price', 'buy_now_price', 'current_bid', 'min_next', 'bids_count', 'leader_id', 'leader', 'sold_price', 'ends_at', 'decide_until', 'server_now'],
+            ['id', 'match_id', 'property_id', 'status', 'seller_id', 'seller', 'min_price', 'buy_now_price', 'current_bid', 'min_next', 'bids_count', 'leader_id', 'leader', 'sold_price', 'ends_at', 'decide_until', 'server_now', 'level', 'branch', 'label'],
             array_keys($offer),
         );
     }

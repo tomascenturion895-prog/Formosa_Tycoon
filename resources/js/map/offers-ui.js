@@ -3,7 +3,7 @@
 
 import { ApiError } from './api.js';
 import { createOffers } from './offers.js';
-import { bidCheck, isDue, phase, roleOf, sellerNet, statusText, suggestPrices, timerText, validatePrices, outcomeNotice } from './offers-model.js';
+import { bidCheck, isDue, phase, roleOf, sellerNet, statusText, suggestPrices, timerText, validatePrices, outcomeNotice, upgradeLine } from './offers-model.js';
 
 /**
  * @param {object} o
@@ -66,6 +66,9 @@ export function createOffersUi({ $, getUser, game, money, clock, propLabel, noti
         $('offer-status').textContent = statusText(o, me(), now, money);
         $('offer-min').textContent = money(o.min_price);
         $('offer-buynow').textContent = money(o.buy_now_price);
+        const upgrade = upgradeLine(o);
+        $('offer-upgrade').textContent = upgrade;
+        $('offer-upgrade-row').hidden = upgrade === '';
         $('offer-best').textContent = o.current_bid == null ? 'Sin ofertas' : `${money(o.current_bid)} · ${role === 'leader' ? 'vos' : o.leader}`;
         updateTimer();
 

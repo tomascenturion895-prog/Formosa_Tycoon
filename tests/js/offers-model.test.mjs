@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sellerNet, suggestPrices, validatePrices, phase, isDue, roleOf, bidCheck, timerText, statusText, outcomeNotice } from '../../resources/js/map/offers-model.js';
+import { sellerNet, suggestPrices, validatePrices, phase, isDue, roleOf, bidCheck, timerText, statusText, outcomeNotice, upgradeLine } from '../../resources/js/map/offers-model.js';
 
 const money = (n) => `$${n}`;
 const clock = (ms) => `${Math.ceil(ms / 1000)}s`;
@@ -85,4 +85,11 @@ test('outcomeNotice: avisos para cada parte', () => {
     assert.match(outcomeNotice(null, offer({ status: 'cerrada' }), 1, ctx).text, /sin venta/);
     assert.equal(outcomeNotice(prev, offer({ leader_id: 2 }), 2, ctx), null); // no hay novedad para quien sigue ganando
     assert.equal(outcomeNotice(prev, sold, null, ctx), null);
+});
+
+test('upgradeLine: la tarjeta de oferta dice qué mejora trae la propiedad', () => {
+    assert.equal(upgradeLine(offer({ level: 2, branch: 'a', label: 'Alquiler turístico' })), 'Alquiler turístico (nivel 2)');
+    assert.equal(upgradeLine(offer({ level: 1, branch: null, label: 'Reformada' })), 'Reformada (nivel 1)');
+    assert.equal(upgradeLine(offer({ level: 0, branch: null, label: null })), '');
+    assert.equal(upgradeLine(offer()), ''); // ofertas viejas sin esos campos
 });

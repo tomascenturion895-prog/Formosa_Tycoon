@@ -84,6 +84,7 @@ class PublicConfig
                 'comebackPct' => (int) config('formosa.sprint.comeback_pct'),
                 'blockLoans' => (bool) config('formosa.sprint.block_loans'),
             ],
+            'upgrades' => self::upgrades(),
             'voice' => app(VoiceService::class)->clientConfig(),
             // Hora de la ciudad: dentro de una partida la calcula el navegador desde `started_at` de ESA partida (ver /api/partidas/actual);
             // `serverNow` sirve para corregir la diferencia entre el reloj del navegador y el del servidor.
@@ -104,5 +105,25 @@ class PublicConfig
                 'scheme' => config('formosa.realtime.scheme'),
             ] : null,
         ];
+    }
+
+    /** Reglas de las mejoras solo para escribir las guías y el panel (el servidor es quien las aplica). */
+    private static function upgrades(): array
+    {
+        $u = config('formosa.upgrades');
+        $pct = fn (array $l) => ['costPct' => (int) round($l['cost_pct'] * 100), 'boostPct' => (int) round($l['boost'] * 100), 'maintPct' => (int) round($l['maint'] * 100)];
+        $kinds = [];
+        foreach ($u['labels'] as $kind => $labels) {
+            $kinds[$kind] = [
+                'levels' => [
+                    ['level' => 1, 'branch' => null, 'label' => $labels['n1']] + $pct($u['levels'][1]),
+                    ['level' => 2, 'branch' => 'a', 'label' => $labels['a']] + $pct($u['levels'][2]['a']),
+                    ['level' => 2, 'branch' => 'b', 'label' => $labels['b']] + $pct($u['levels'][2]['b']),
+                ],
+                'branchBEffect' => $u['effects_b'][$kind],
+            ];
+        }
+
+        return ['discountPct' => (int) round($u['discount'] * 100), 'netWorthPct' => (int) round($u['net_worth_ratio'] * 100), 'kinds' => $kinds];
     }
 }

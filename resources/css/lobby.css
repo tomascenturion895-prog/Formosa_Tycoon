@@ -4,10 +4,16 @@
     min-height: 100%;
     height: auto;
     padding: 24px 16px;
-    background: #ebe8e0;
+    background:
+        radial-gradient(900px 420px at 12% -8%, rgb(31 111 235 / 0.16), transparent 62%),
+        radial-gradient(760px 380px at 100% 0%, rgb(231 111 81 / 0.16), transparent 60%),
+        #ebe8e0;
 }
 
 .lobby-page {
+    --accent-strong: #1556b8;
+    --danger: #b3261e;
+    --radius-btn: 12px;
     width: min(860px, 100%);
     max-height: none;
     margin: 0 auto;
@@ -15,10 +21,10 @@
 }
 
 .lobby-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-.lobby-head h1 { margin: 0; font-size: 1.5rem; }
+.lobby-head h1 { margin: 0; font-size: 1.7rem; letter-spacing: -0.01em; }
 .lobby-head h1 span { color: var(--accent); }
 .lobby-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.lobby-who { font-weight: 700; }
+.lobby-who { font-weight: 700; display: block; }
 .lobby-logout { margin: 0; }
 .lobby-page .link, .lobby-link { color: var(--accent); font: inherit; background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 .lobby-page button.lobby-help { width: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
@@ -78,3 +84,101 @@
 .manual-steps { margin: 0; padding: 0 14px 12px 32px; display: flex; flex-direction: column; gap: 10px; }
 .manual-steps h3 { margin: 0 0 2px; font-size: 0.95rem; }
 .manual-steps p { margin: 0; font-size: 0.9rem; line-height: 1.45; }
+
+/* ---------- Perfil en el encabezado (base para avatar, color y logros) ---------- */
+.lobby-profile { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.lobby-profile-text { min-width: 0; }
+.lobby-profile-text .lobby-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16ch; }
+.avatar {
+    --avatar: #1f6feb;
+    flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;
+    background: var(--avatar); color: #fff; font-weight: 800; font-size: 0.95rem; letter-spacing: 0.02em;
+    box-shadow: 0 0 0 3px #fff, 0 0 0 4px var(--avatar);
+}
+.lobby-badges { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.lobby-badges[hidden] { display: none; }
+.lobby-badges li { padding: 1px 8px; border-radius: 999px; background: #fff6dc; border: 1px solid #e8c35b; font-size: 0.72rem; font-weight: 700; }
+
+/* ---------- Botones: primario / secundario / peligro, todos con hover, presionado, foco, deshabilitado y cargando ---------- */
+.lobby-page.dialog button:not(.icon):not(.link),
+.lobby-page .lobby-cta {
+    position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 18px; border-radius: var(--radius-btn); border: 1px solid var(--line);
+    background: #fff; color: var(--ink); font: inherit; font-weight: 700; text-decoration: none; cursor: pointer;
+    box-shadow: 0 1px 0 rgb(0 0 0 / 0.04);
+    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.08s;
+}
+.lobby-page.dialog button:not(.icon):not(.link):hover:not(:disabled) { border-color: var(--accent); color: var(--accent-strong); box-shadow: 0 2px 8px rgb(31 111 235 / 0.18); }
+.lobby-page.dialog button.primary:not(.icon):not(.link), .lobby-page .lobby-cta {
+    border-color: var(--accent-strong); color: #fff;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+    box-shadow: 0 2px 6px rgb(21 86 184 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+.lobby-page.dialog button.primary:not(.icon):not(.link):hover:not(:disabled), .lobby-page .lobby-cta:hover {
+    color: #fff; filter: brightness(1.07); box-shadow: 0 4px 12px rgb(21 86 184 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+.lobby-page.dialog button.secondary:not(.icon):not(.link) { border-color: var(--accent); color: var(--accent-strong); background: #f3f7ff; }
+.lobby-page.dialog button.danger:not(.icon):not(.link) { border-color: var(--danger); color: var(--danger); background: #fff5f4; }
+.lobby-page.dialog button:not(.icon):not(.link):active:not(:disabled), .lobby-page .lobby-cta:active { transform: translateY(1px); box-shadow: none; }
+.lobby-page.dialog button:not(.icon):not(.link):focus-visible, .lobby-page .lobby-cta:focus-visible { outline: 3px solid #ffb703; outline-offset: 2px; }
+.lobby-page .btn-lg { min-height: 48px; font-size: 1rem; }
+.lobby-page.dialog button.lobby-help { width: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
+
+/* Cargando: el texto se queda (para no cambiar el ancho) y aparece un spinner delante. */
+.lobby-page button[data-loading]::before {
+    content: ''; width: 1em; height: 1em; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent;
+    animation: lobby-spin 0.7s linear infinite;
+}
+@keyframes lobby-spin { to { transform: rotate(360deg); } }
+
+/* ---------- Pestañas ---------- */
+.lobby-tabs { gap: 2px; }
+.lobby-page .lobby-tab { transition: color 0.15s, background-color 0.15s, border-color 0.15s; }
+.lobby-page .lobby-tab:hover { background: #eef4ff; color: var(--accent-strong); }
+.lobby-page .lobby-tab:focus-visible { outline: 3px solid #ffb703; outline-offset: -3px; }
+.lobby-page .lobby-tab[aria-selected='true'] { border-bottom-width: 4px; }
+
+/* ---------- Tarjetas de sala con cupo ---------- */
+.lobby-page .lobby-card { background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); transition: box-shadow 0.15s, border-color 0.15s; }
+.lobby-page .lobby-card:focus-within { border-color: var(--accent); box-shadow: 0 4px 14px rgb(31 111 235 / 0.14); }
+.lobby-page .room-list { gap: 10px; }
+.lobby-page .room-card {
+    grid-template-columns: minmax(0, 1fr) auto auto; gap: 14px; padding: 12px 14px; border-radius: 14px;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+}
+.lobby-page .room-card:hover { border-color: var(--accent); box-shadow: 0 6px 18px rgb(31 111 235 / 0.14); transform: translateY(-1px); }
+.room-seats { display: inline-flex; align-items: center; gap: 4px; }
+.room-seats .seat { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #b8c2cc; box-sizing: border-box; }
+.room-seats .seat.on { background: #1b7f74; border-color: #1b7f74; }
+.room-seats .room-count { margin-left: 6px; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink-soft); }
+@media (max-width: 520px) {
+    .lobby-page .room-card { grid-template-columns: minmax(0, 1fr) auto; }
+    .lobby-page .room-card .room-seats { grid-column: 1; grid-row: 2; }
+    .lobby-page .room-card button { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* ---------- Skeletons ---------- */
+.sk { display: block; border-radius: 6px; background: linear-gradient(90deg, #ece9e0 25%, #f7f5ef 50%, #ece9e0 75%); background-size: 200% 100%; animation: lobby-shimmer 1.3s ease-in-out infinite; }
+.sk-title { height: 16px; width: min(60%, 220px); }
+.sk-dots { height: 12px; width: 76px; }
+.sk-btn { height: 40px; width: 88px; border-radius: 12px; }
+.sk-pos { height: 14px; width: 22px; }
+.sk-value { height: 14px; width: 64px; }
+.sk-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 14px 8px; }
+.lobby-page .room-card.sk-item { pointer-events: none; transform: none; box-shadow: none; }
+@keyframes lobby-shimmer { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .sk { animation: none; }
+    .lobby-page button[data-loading]::before { animation-duration: 2.4s; }
+    .lobby-page .room-card, .lobby-page.dialog button { transition: none; }
+    .lobby-page .room-card:hover { transform: none; }
+}
+
+/* Las pestañas no son botones con caja: subrayado que marca la activa (gana a la regla general de botones). */
+.lobby-page.dialog button.lobby-tab:not(.icon):not(.link) {
+    min-height: 44px; padding: 10px 16px; border: 0; border-bottom: 3px solid transparent; border-radius: 8px 8px 0 0;
+    background: none; box-shadow: none; color: var(--ink-soft);
+}
+.lobby-page.dialog button.lobby-tab[aria-selected='true']:not(.icon):not(.link) { color: var(--ink); border-bottom: 4px solid var(--accent); }
+.lobby-page.dialog button.lobby-tab:not(.icon):not(.link):hover:not(:disabled) { background: #eef4ff; color: var(--accent-strong); box-shadow: none; }

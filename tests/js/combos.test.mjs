@@ -45,3 +45,8 @@ test('comboLines: zonas, variedad completa o lo que falta', () => {
     assert.match(comboLines({ zones: [], variety: true, variety_bonus: 500 }, new Set(), rules, money)[0], /Variedad completa.*\+\$ 500/);
     assert.deepEqual(comboLines(null, new Set(), rules, money), []);
 });
+
+test('zoneHint: una propiedad con peso 2 cuenta por dos', () => {
+    const mine = [{ lat: at.lat, lng: at.lng, weight: 2 }];
+    assert.match(zoneHint(at, mine, false, rules), /Con esta tendrías 3 en la zona: todas rendirían \+10 %/);
+});

@@ -40,7 +40,8 @@ export function zoneHint(at, mine, owned, rules) {
         return '';
     }
     const key = zoneKey(at.lat, at.lng, rules.zoneDeg);
-    const here = mine.filter((m) => zoneKey(m.lat, m.lng, rules.zoneDeg) === key).length;
+    // Algunas mejoras cuentan por más de una propiedad (`weight`, ver Upgrades::zoneWeight en el servidor).
+    const here = mine.filter((m) => zoneKey(m.lat, m.lng, rules.zoneDeg) === key).reduce((n, m) => n + (m.weight ?? 1), 0);
     const count = owned ? here : here + 1; // con la que se mira (si todavía no es mía)
     const cur = zonePct(count, rules.zoneTiers);
     const next = nextTier(count, rules.zoneTiers);

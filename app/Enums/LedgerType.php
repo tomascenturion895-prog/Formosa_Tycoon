@@ -11,6 +11,7 @@ enum LedgerType: string
     case Venta = 'venta';    // venta de una propiedad al banco
     case Prestamo = 'prestamo'; // el banco desembolsa un préstamo
     case Cuota = 'cuota';       // cuota o pago de un préstamo al banco
+    case Mejora = 'mejora';     // el jugador paga una mejora de una propiedad
 
     /** @return list<string> */
     public static function values(): array

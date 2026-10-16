@@ -28,7 +28,7 @@ class PublicConfigTest extends TestCase
         foreach (['static', 'center', 'zoom', 'data'] as $key) {
             $this->assertArrayNotHasKey($key, $c, "{$key} no corresponde al lobby");
         }
-        foreach (['match', 'economy', 'auction', 'combos', 'events', 'voice', 'chat', 'kinds', 'bank', 'offers', 'sprint', 'user', 'urls', 'reverb', 'clock'] as $key) {
+        foreach (['match', 'economy', 'auction', 'combos', 'events', 'voice', 'chat', 'kinds', 'bank', 'offers', 'sprint', 'upgrades', 'user', 'urls', 'reverb', 'clock'] as $key) {
             $this->assertArrayHasKey($key, $c, "falta la clave {$key}");
         }
     }
@@ -65,5 +65,20 @@ class PublicConfigTest extends TestCase
             $this->assertArrayNotHasKey('email', $c['user']);
             $this->assertStringNotContainsString('secreto@example.com', json_encode($c));
         }
+    }
+
+    public function test_la_configuracion_publica_trae_las_mejoras(): void
+    {
+        config(['formosa.upgrades.levels.1.cost_pct' => 0.6, 'formosa.upgrades.discount' => 0.25]);
+        $u = PublicConfig::forLobby(null)['upgrades'];
+
+        $this->assertSame(25, $u['discountPct']);
+        $this->assertSame(50, $u['netWorthPct']);
+        $this->assertEqualsCanonicalizing(['casa', 'comercio', 'supermercado', 'hotel'], array_keys($u['kinds']));
+        $casa = $u['kinds']['casa'];
+        $this->assertSame([1, null, 'Reformada', 60, 40, 5], array_values(array_intersect_key($casa['levels'][0], array_flip(['level', 'branch', 'label', 'costPct', 'boostPct', 'maintPct']))));
+        $this->assertSame(['a', 'b'], [$casa['levels'][1]['branch'], $casa['levels'][2]['branch']]);
+        $this->assertSame('Edificio de departamentos', $casa['levels'][2]['label']);
+        $this->assertSame('Cuenta como 2 propiedades para el combo de zona.', $casa['branchBEffect']);
     }
 }

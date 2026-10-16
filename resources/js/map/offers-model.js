@@ -139,3 +139,8 @@ export function outcomeNotice(prev, o, meId, { money, label, feePct }) {
     }
     return null;
 }
+
+/** Mejora que trae la propiedad ofertada ('' si no tiene). `o.level`/`o.label` los pone el servidor (Offer::toPublic). */
+export function upgradeLine(o) {
+    return (o.level ?? 0) > 0 && o.label ? `${o.label} (nivel ${o.level})` : '';
+}

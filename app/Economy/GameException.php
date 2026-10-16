@@ -52,6 +52,23 @@ class GameException extends RuntimeException
         return new static('en_subasta', 'Esa propiedad está en subasta: pujá para quedártela.', 409);
     }
 
+    public static function upgradeUnavailable(): static
+    {
+        return new static('mejora_no_disponible', 'Esa propiedad ya tiene esa mejora o todavía no se puede hacer: se sube de a un nivel.', 409);
+    }
+
+    public static function busyForUpgrade(bool $offer): static
+    {
+        return $offer
+            ? new static('en_oferta', 'Esa propiedad está en oferta: retirala antes de mejorarla.', 409)
+            : new static('en_subasta', 'Esa propiedad está en subasta: no se puede mejorar ahora.', 409);
+    }
+
+    public static function invalidBranch(): static
+    {
+        return new static('rama_invalida', 'Elegí una de las dos especializaciones del nivel 2.', 422);
+    }
+
     public static function auctionNotFound(): static
     {
         return new static('subasta_inexistente', 'Esa subasta no existe.', 404);

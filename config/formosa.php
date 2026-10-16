@@ -108,6 +108,36 @@ return [
     // Los comercios mapeados solo como punto reciben una huella cuadrada de este lado (metros).
     'synthetic_footprint_m' => 12,
 
+    // Mejoras de propiedades (ver docs/superpowers/specs/2026-10-16-profundidad-propiedades-design.md).
+    //  - Nivel 1 "Reformada" y nivel 2 con rama `a` o `b` (no se deshace). `cost_pct` es sobre el precio de lista; `boost` y `maint`
+    //    son sobre el ingreso por día de lista. Ingreso de la fila = bruto (con eventos) - mantenimiento (fijo), nunca menos de 0.
+    //  - Recupero (costo / aumento neto por día) entre 5 y 8 días en el nivel 1 y entre 6 y 11 en el 2, y siempre más lento que
+    //    comprar otra propiedad: lo vigila tests/Unit/UpgradesTest.
+    'upgrades' => [
+        'net_worth_ratio' => 0.5, // en el patrimonio, cada peso invertido en mejoras vale esto
+        'discount' => 0.20,       // con un Centro logístico (supermercado nivel 2 rama b) las mejoras cuestan esto menos
+        'dampen_down' => 0.5,     // el Mayorista (comercio nivel 2 rama b) recibe esta fracción de las caídas por eventos
+        'levels' => [
+            1 => ['cost_pct' => 0.50, 'boost' => 0.40, 'maint' => 0.05],
+            2 => [
+                'a' => ['cost_pct' => 0.80, 'boost' => 1.10, 'maint' => 0.30],
+                'b' => ['cost_pct' => 0.60, 'boost' => 0.75, 'maint' => 0.10],
+            ],
+        ],
+        'labels' => [
+            'casa' => ['n1' => 'Reformada', 'a' => 'Alquiler turístico', 'b' => 'Edificio de departamentos'],
+            'comercio' => ['n1' => 'Reformada', 'a' => 'Shopping', 'b' => 'Mayorista'],
+            'supermercado' => ['n1' => 'Reformada', 'a' => 'Hipermercado', 'b' => 'Centro logístico'],
+            'hotel' => ['n1' => 'Reformada', 'a' => 'Resort', 'b' => 'Hotel de negocios'],
+        ],
+        'effects_b' => [
+            'casa' => 'Cuenta como 2 propiedades para el combo de zona.',
+            'comercio' => 'Las crisis le pegan la mitad.',
+            'supermercado' => 'Con uno, todas tus mejoras cuestan 20 % menos.',
+            'hotel' => 'Mantenimiento bajo.',
+        ],
+    ],
+
     // Economía del jugador (el dinero inicial y el reloj están en `match`).
     'economy' => [
         'max_signups_per_ip_per_day' => 40, // cuentas nuevas por IP por día (varias personas pueden compartir una IP: una escuela)

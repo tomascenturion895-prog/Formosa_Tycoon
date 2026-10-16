@@ -4,7 +4,7 @@ namespace App\Economy;
 
 /**
  * Bonus de ingreso por combos. Pura (sin base de datos): recibe las propiedades de UN jugador y devuelve cuánto rinden.
- * Cada fila: ['id' => int, 'kind' => string, 'lat' => float, 'lng' => float, 'income' => int]. Todo en pesos enteros.
+ * Cada fila: ['id' => int, 'kind' => string, 'lat' => float, 'lng' => float, 'income' => int, 'weight' => int (opcional, 1)]. Todo en pesos enteros.
  * El cliente tiene una copia de la misma cuenta (resources/js/map/combos.js): si cambia una, cambia la otra.
  */
 final class Combos
@@ -46,12 +46,13 @@ final class Combos
             $z = self::zoneKey((float) $r['lat'], (float) $r['lng'], (float) $cfg['zone_deg']);
             $byZone[$z]['income'] = ($byZone[$z]['income'] ?? 0) + (int) $r['income'];
             $byZone[$z]['ids'][] = (int) $r['id'];
+            $byZone[$z]['weight'] = ($byZone[$z]['weight'] ?? 0) + (int) ($r['weight'] ?? 1); // algunas mejoras cuentan por más de una
         }
 
         $zones = [];
         $bonus = 0;
         foreach ($byZone as $z => $g) {
-            $count = count($g['ids']);
+            $count = $g['weight'];
             $pct = self::zonePct($count, $cfg['zone_tiers']);
             if ($pct <= 0) {
                 continue;

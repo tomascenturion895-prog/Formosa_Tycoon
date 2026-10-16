@@ -130,6 +130,14 @@ export function createGame({ serverNow: initialServerNow = Date.now() } = {}) {
         return r;
     }
 
+    /** Sube una propiedad propia al nivel siguiente. `branch` ('a'|'b') solo para el nivel 2. */
+    async function upgrade(propertyId, level, branch = null) {
+        const body = branch ? { nivel: level, rama: branch } : { nivel: level };
+        const r = await postJson(`${base()}/propiedades/${propertyId}/mejorar`, { 'Idempotency-Key': newKey() }, body);
+        setBalance(r.balance);
+        return r;
+    }
+
     // ---- Salas
     async function create({ nombre, cupo, publica }) {
         const r = await postJson('/api/partidas', {}, { nombre, cupo, publica });
@@ -164,7 +172,7 @@ export function createGame({ serverNow: initialServerNow = Date.now() } = {}) {
         state, refresh, refreshSoon, apply, clear, serverNow, syncClock,
         get offset() { return offset; },
         matchId, isRunning, cash, reserved, available, incomePerDay, assets, debt, netWorth, setBalance, setDebt,
-        buy, sell, create, join, start, leave,
+        buy, sell, upgrade, create, join, start, leave,
         owns: (id) => state.props.has(id),
     };
 }

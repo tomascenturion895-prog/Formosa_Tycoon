@@ -62,8 +62,15 @@ class Offer extends Model
     public function toPublic(): array
     {
         $this->loadMissing('seller:id,name', 'leader:id,name');
+        // La mejora viaja con la propiedad: el comprador tiene que ver qué compra.
+        $up = \Illuminate\Support\Facades\DB::table('match_properties as mp')->join('properties as p', 'p.id', '=', 'mp.property_id')
+            ->where('mp.match_id', $this->match_id)->where('mp.property_id', $this->property_id)->first(['p.kind', 'mp.level', 'mp.branch']);
+        $level = (int) ($up->level ?? 0);
 
         return [
+            'level' => $level,
+            'branch' => $up->branch ?? null,
+            'label' => $level > 0 ? \App\Economy\Upgrades::option($up->kind, $level, $up->branch)['label'] : null,
             'id' => $this->id,
             'match_id' => $this->match_id,
             'property_id' => $this->property_id,

@@ -13,6 +13,14 @@ const cfg = {
     offers: { durationSeconds: 90, decideSeconds: 30, feePct: 5, minPrice: 500 },
     sprint: { enabled: true, seconds: 180, incomePct: 1, flashInterval: 60, flashSeconds: 20, flashStartPct: 50, comebackPct: 10, blockLoans: true },
     voice: { enabled: true }, chat: { max: 200 },
+    upgrades: {
+        discountPct: 20, netWorthPct: 50,
+        kinds: Object.fromEntries([['casa', 'Alquiler turístico', 'Edificio de departamentos', 'Cuenta como 2 propiedades para el combo de zona.'], ['comercio', 'Shopping', 'Mayorista', 'Las crisis le pegan la mitad.'],
+            ['supermercado', 'Hipermercado', 'Centro logístico', 'Con uno, todas tus mejoras cuestan 20 % menos.'], ['hotel', 'Resort', 'Hotel de negocios', 'Mantenimiento bajo.']].map(([k, a, b, eff]) => [k, {
+            levels: [{ level: 1, branch: null, label: 'Reformada', costPct: 50, boostPct: 40, maintPct: 5 }, { level: 2, branch: 'a', label: a, costPct: 80, boostPct: 110, maintPct: 30 }, { level: 2, branch: 'b', label: b, costPct: 60, boostPct: 75, maintPct: 10 }],
+            branchBEffect: eff,
+        }])),
+    },
 };
 const off = { ...cfg, events: { enabled: false }, sprint: { enabled: false }, voice: { enabled: false }, bank: undefined };
 const users = [{ id: 1, name: 'Ana' }, null];
@@ -98,9 +106,9 @@ test('pointsText_arma_el_texto_desde_la_configuracion', () => {
 // ---------------------------------------------------------------- Etapa 3: guías de partida
 const text = (id, c = cfg, user = { id: 1 }) => guideById(id).steps({ cfg: c, user }).map((s) => `${s.title} ${s.text}`).join(' ');
 
-test('hay_quince_guias_y_las_de_partida_no_son_automaticas', () => {
-    assert.equal(GUIDES.length, 15);
-    for (const id of ['partida-subastas', 'partida-ofertas', 'partida-combos-eventos', 'partida-banco', 'partida-social', 'partida-herramientas']) {
+test('hay_dieciseis_guias_y_las_de_partida_no_son_automaticas', () => {
+    assert.equal(GUIDES.length, 16);
+    for (const id of ['partida-subastas', 'partida-ofertas', 'partida-combos-eventos', 'partida-banco', 'partida-social', 'partida-herramientas', 'partida-mejoras']) {
         const g = guideById(id);
         assert.ok(g, id);
         assert.equal(g.place, 'partida');
@@ -162,4 +170,21 @@ test('social_habla_de_voz_solo_si_esta_habilitada_y_hay_cuenta', () => {
 test('herramientas_cubre_3d_ajustes_ocultar_y_reloj', () => {
     const t = text('partida-herramientas');
     for (const word of [/3D/, /Ajustes/, /tecla H/, /reloj/i, /música/i]) assert.match(t, word);
+});
+
+test('mejoras_usa_los_numeros_de_la_configuracion', () => {
+    const g = guideById('partida-mejoras');
+    assert.equal(g.place, 'partida');
+    assert.equal(g.auto, false);
+    assert.equal(g.steps({ cfg, user: { id: 1 } }).length, 3);
+    const t = text('partida-mejoras');
+    for (const part of ['50 %', '40 %', '110 %', '30 %', '5 %', '20 %', 'Alquiler turístico', 'Edificio de departamentos', 'Mayorista', 'Centro logístico', 'Hotel de negocios', 'perdés la mejora']) {
+        assert.ok(t.includes(part), `falta "${part}"`);
+    }
+    assert.ok(guideById('partida-mejoras').steps({ cfg, user: null }).every((s) => s.targets.length > 0));
+});
+
+test('mejoras_no_aparece_si_falta_cfg_upgrades', () => {
+    assert.ok(!guidesFor('partida', { cfg: { ...cfg, upgrades: undefined }, user: { id: 1 } }).some((g) => g.id === 'partida-mejoras'));
+    assert.ok(guidesFor('partida', { cfg, user: { id: 1 } }).some((g) => g.id === 'partida-mejoras'));
 });

@@ -10,6 +10,9 @@ import { parseLobbyParams } from './params.js';
 import { createGuides } from '../guides/guide.js';
 import { manualSections } from '../guides/manual-model.js';
 import { renderManual } from './manual.js';
+import { skeletonItems, setBusyList } from './skeleton.js';
+import { initials } from './lobby-ui-model.js';
+import { ownerColor } from '../map/owners.js';
 
 const cfg = window.__MAP_CONFIG__;
 const $ = (id) => document.getElementById(id);
@@ -18,6 +21,13 @@ const game = user ? createGame({ serverNow: cfg.clock?.serverNow ?? Date.now() }
 
 mountArt($('lobby-art'), lobbyHeader());
 mountArt($('room-empty-art'), emptyRooms());
+
+// Avatar del encabezado: iniciales sobre el color del jugador (el mismo que lo identifica en el mapa). Cuando el perfil permita
+// elegir color y foto, se cambia acá y el resto de la pantalla no se entera.
+if (user && $('lobby-avatar')) {
+    $('lobby-avatar').textContent = initials(user.name);
+    $('lobby-avatar').style.setProperty('--avatar', ownerColor(user.id));
+}
 
 const rooms = createRooms({ $, user, game });
 
@@ -37,6 +47,7 @@ if (params.notice || window.location.search.includes('codigo=')) {
 // ---------------------------------------------------------------- pestañas
 const TABS = ['salas', 'ranking', 'historial', 'manual'].filter((name) => $(`tab-${name}`));
 const loaded = new Set();
+const lastCount = {}; // cuántas filas tuvo cada lista la última vez: el relleno de la próxima carga se le parece
 const el = (tag, cls, text) => {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -55,14 +66,18 @@ function emptyItem(art, text) {
 async function loadRanking() {
     const list = $('lobby-ranking-list');
     const note = $('lobby-ranking-note');
-    list.replaceChildren(el('li', 'drawer-empty', 'Cargando…'));
+    list.replaceChildren(...skeletonItems('row', lastCount.ranking));
+    setBusyList(list, true);
     try {
         const [{ players }, mine] = await Promise.all([getJson('/api/ranking'), user ? getJson('/api/yo').catch(() => null) : null]);
         const model = rankingModel({ players, mine, user });
         note.textContent = model.note;
+        lastCount.ranking = model.rows.length;
+        setBusyList(list, false);
         list.replaceChildren(...(model.rows.length ? model.rows.map(rowElement) : [emptyItem(emptyRanking(), 'Todavía nadie sumó puntos. Jugá la primera partida.')]));
         loaded.add('ranking');
     } catch {
+        setBusyList(list, false);
         list.replaceChildren(el('li', 'drawer-empty', 'No se pudo cargar el ranking. Probá de nuevo.'));
     }
 }
@@ -70,14 +85,18 @@ async function loadRanking() {
 async function loadHistory() {
     const list = $('lobby-history-list');
     const note = $('lobby-history-note');
-    list.replaceChildren(el('li', 'drawer-empty', 'Cargando…'));
+    list.replaceChildren(...skeletonItems('row', lastCount.historial));
+    setBusyList(list, true);
     try {
         const { matches } = await getJson('/api/yo/historial');
         const model = historyModel({ matches });
         note.textContent = model.note;
+        lastCount.historial = model.rows.length;
+        setBusyList(list, false);
         list.replaceChildren(...(model.rows.length ? model.rows.map(rowElement) : [emptyItem(emptyHistory(), 'Todavía no terminaste ninguna partida.')]));
         loaded.add('historial');
     } catch {
+        setBusyList(list, false);
         list.replaceChildren(el('li', 'drawer-empty', 'No se pudo cargar tu historial. Probá de nuevo.'));
     }
 }

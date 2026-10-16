@@ -329,6 +329,7 @@
                 <div><dt>Mínimo</dt><dd id="offer-min"></dd></div>
                 <div><dt>Comprá ya</dt><dd id="offer-buynow"></dd></div>
                 <div><dt>Mejor oferta</dt><dd id="offer-best"></dd></div>
+                <div id="offer-upgrade-row" hidden><dt>Mejora</dt><dd id="offer-upgrade"></dd></div>
             </dl>
             <form id="offer-bid-form" class="bid-form" novalidate hidden>
                 <label for="offer-bid-input">Tu oferta ($)</label>
@@ -344,7 +345,8 @@
             </div>
         </div>
         <details id="offer-new" class="data-box offer-new" hidden>
-            <summary>Ofrecerla a otros jugadores <button type="button" class="guide-help" data-guide="partida-ofertas" aria-label="Cómo funcionan las ofertas">?</button></summary>
+            <summary>Ofrecerla a otros jugadores</summary>
+            <p class="offer-help-row"><button type="button" class="guide-help" data-guide="partida-ofertas" aria-label="Cómo funcionan las ofertas">?</button> <span>¿Cómo funcionan las ofertas?</span></p>
             <form id="offer-form" class="data-form" novalidate>
                 <label for="offer-min-input">Mínimo ($): no la vendés por menos</label>
                 <input id="offer-min-input" type="number" inputmode="numeric" min="1" step="1" autocomplete="off">
@@ -401,9 +403,23 @@
             </form>
             <p id="data-msg" class="panel-msg" role="status" hidden></p>
         </details>
+        <section id="panel-upgrades" class="panel-upgrades" aria-labelledby="up-title" tabindex="-1" hidden>
+            <div class="up-head">
+                <h3 id="up-title">Mejoras</h3>
+                <button type="button" class="guide-help" data-guide="partida-mejoras" aria-label="Cómo funcionan las mejoras">?</button>
+            </div>
+            <p id="up-level" class="up-level"></p>
+            <ul class="up-breakdown" aria-label="Ingreso por día de esta propiedad">
+                <li><span>Bruto</span> <b id="up-gross"></b></li>
+                <li><span>Mantenimiento</span> <b id="up-maint"></b></li>
+                <li><span>Neto</span> <b id="up-net"></b></li>
+            </ul>
+            <ul id="up-options" class="up-options"></ul>
+        </section>
         <div class="panel-actions">
             <button id="btn-buy" type="button" hidden></button>
             <button id="btn-sell" type="button" class="secondary" hidden></button>
+            <p id="sell-warn" class="panel-msg" hidden></p>
             <p id="panel-after" class="panel-after" hidden></p>
             <a id="link-login" href="{{ route('login') }}" hidden>Ingresá para jugar</a>
             <a id="btn-join-cta" class="cta" href="{{ route('mapa') }}" hidden>Sumate a una partida para comprar</a>

@@ -64,7 +64,7 @@ class LoanService
             if ($open->count() >= (int) $cfg['max_loans']) {
                 throw GameException::tooManyLoans((int) $cfg['max_loans']);
             }
-            $max = LoanRules::maxNew($this->netWorth($matchId, $user->id, $player->cash, (int) $open->sum(fn (Loan $l) => $l->debt())), (int) $cfg['max_share_pct']);
+            $max = LoanRules::maxNew($this->netWorthOf($matchId, $user->id, $player->cash, (int) $open->sum(fn (Loan $l) => $l->debt())), (int) $cfg['max_share_pct']);
             if ($amount > $max) {
                 throw GameException::loanTooBig($max);
             }
@@ -238,7 +238,7 @@ class LoanService
 
         $cfg = config('formosa.bank');
         $debt = (int) $loans->sum(fn (Loan $l) => $l->debt());
-        $max = LoanRules::maxNew($this->netWorth($matchId, $user->id, $cash, $debt), (int) $cfg['max_share_pct']);
+        $max = LoanRules::maxNew($this->netWorthOf($matchId, $user->id, $cash, $debt), (int) $cfg['max_share_pct']);
         $arrears = (int) $loans->sum('arrears');
         $sprint = config('formosa.sprint.block_loans') && app(SprintService::class)->isOn(GameMatch::findOrFail($matchId));
         $block = match (true) {
@@ -286,11 +286,12 @@ class LoanService
 
     // ------------------------------------------------------------------ interno
 
-    /** Patrimonio sin deuda a restar: efectivo + precio de lista de las propiedades - deuda. */
-    private function netWorth(int $matchId, int $userId, int $cash, int $debt): int
+    /** Patrimonio: efectivo + valor de las propiedades (lista + parte de lo invertido en mejoras, ver Upgrades::assetValue) - deuda. */
+    public function netWorthOf(int $matchId, int $userId, int $cash, int $debt): int
     {
         $assets = (int) DB::table('match_properties as mp')->join('properties as p', 'p.id', '=', 'mp.property_id')
-            ->where('mp.match_id', $matchId)->where('mp.owner_id', $userId)->sum('p.price');
+            ->where('mp.match_id', $matchId)->where('mp.owner_id', $userId)->get(['p.price', 'mp.upgrade_paid'])
+            ->sum(fn ($r) => Upgrades::assetValue((int) $r->price, (int) $r->upgrade_paid));
 
         return $cash + $assets - $debt;
     }

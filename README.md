@@ -131,6 +131,23 @@ php artisan formosa:recalcular-economia                      # aplica los númer
 
 Con el rendimiento anterior la plata se multiplicaba por 19 en dos semanas y el mapa se agotaba enseguida; ahora la temporada dura semanas y entrar seguido rinde más: a los 30 días un jugador intenso (8 visitas por día) tiene ~3 veces más propiedades que uno casual (1 por día). Los supermercados y hoteles son pocos (24 en total) y rinden apenas más por peso (0,48 % y 0,5 % por hora): son premios a disputar en subasta, no una forma de enriquecerse rápido. Si el juego queda muy lento o muy rápido en la práctica, se ajusta `rate_per_hour` y se corre `formosa:recalcular-economia`.
 
+## Mejoras y mantenimiento
+
+Cada propiedad de una partida se puede mejorar: nivel 1 "Reformada" y nivel 2 con una de dos especializaciones (rama `a` o `b`, según el tipo). Se sube de a un nivel y no se deshace. Los números están en `config/formosa.php` (`upgrades`) y las reglas puras en `app/Economy/Upgrades.php`:
+
+| | Cuesta (del precio de lista) | Ingreso | Mantenimiento por día |
+|---|---|---|---|
+| Nivel 1, Reformada | 50 % | +40 % | 5 % |
+| Nivel 2, rama A (Alquiler turístico, Shopping, Hipermercado, Resort) | 80 % | +110 % | 30 % |
+| Nivel 2, rama B (Edificio de departamentos, Mayorista, Centro logístico, Hotel de negocios) | 60 % | +75 % | 10 % |
+
+- **Ingreso neto.** Lo que cobra una fila es `floor(ingreso de lista × (1 + boost) × eventos) − mantenimiento`, nunca menos de 0. El mantenimiento sale del ingreso de lista, así que no se duplica en el sprint y las crisis pegan más cuanto más caro sea. Los combos se calculan sobre ese neto. No hay un movimiento aparte por mantenimiento: el cobro ya viene neto.
+- **Ramas B.** Edificio de departamentos cuenta como 2 propiedades para el combo de zona; Mayorista recibe la mitad de las caídas por eventos; Centro logístico baja un 20 % el costo de tus mejoras (el primero se paga completo); Hotel de negocios gana por su mantenimiento bajo.
+- **Con otros sistemas.** La mejora viaja con la propiedad en una oferta entre jugadores; vender al banco devuelve lo de siempre y la pierde; en el patrimonio cuenta la mitad de lo pagado en mejoras (`net_worth_ratio`); no se puede mejorar con una subasta u oferta abiertas.
+- **Servidor.** `POST /api/partidas/{id}/propiedades/{id}/mejorar` con `{nivel, rama}` e `Idempotency-Key`, a cargo de `UpgradeService` (mismo orden de bloqueos que vender). Columnas `level`, `branch` y `upgrade_paid` en `match_properties`, y movimiento `mejora` en el libro.
+- **Calibración.** `tests/Unit/UpgradesTest` falla si una mejora se recupera fuera de las bandas (nivel 1: 5 a 8 días de juego; nivel 2: 6 a 11) o más rápido que comprar otra propiedad del mismo tipo. Si se cambia la tabla, hay que mantenerse dentro de esas bandas.
+- **Instalación.** Trae una migración nueva: `php artisan migrate`.
+
 ## Datos reales de Formosa
 
 ```bash
@@ -201,10 +218,10 @@ Tres pantallas, cada una con su dirección:
 - **`/partida/CÓDIGO` — la partida.** Sala de espera, juego y resultados viven en la misma dirección. El código se compara sin importar mayúsculas. Si la sala no es tuya, no existe o venció, volvés al lobby con un aviso. Abandonar también vuelve al lobby.
 - **`/explorar` — el mapa sin partida.** Para recorrer la ciudad. `/explorar?hora=21` muestra la luz de esa hora, `/explorar?debug=1` los cuadros por segundo y `/explorar?p=ID` abre esa propiedad (lo usa la página de revisión de moderadores).
 
-**Guías.** Son datos con versión (`resources/js/guides/guides-model.js`) y un solo motor. Hay 15, agrupadas por lugar: lobby (bienvenida, salas, ranking), sala de espera (sala, chat y voz), partida (tablero, comprar, subastas, ofertas, combos y eventos, banco, chat y actividad, herramientas), resultados y explorar. Los textos usan los números reales de la configuración (`PublicConfig::forLobby`), y lo que está apagado (eventos, sprint, voz, banco) no aparece.
+**Guías.** Son datos con versión (`resources/js/guides/guides-model.js`) y un solo motor. Hay 16, agrupadas por lugar: lobby (bienvenida, salas, ranking), sala de espera (sala, chat y voz), partida (tablero, comprar, subastas, ofertas, combos y eventos, mejoras, banco, chat y actividad, herramientas), resultados y explorar. Los textos usan los números reales de la configuración (`PublicConfig::forLobby`), y lo que está apagado (eventos, sprint, voz, banco) no aparece.
 
 - La **guía principal de cada lugar se abre sola la primera vez**, una sola vez (se guarda en `localStorage`, clave `formosa.guias.v1`; si se sube la `version` de una guía vuelve a figurar como *Nuevo*). Los navegadores automatizados no las abren solas.
-- El botón **`?`** abre el menú de guías del lugar donde estás, con la marca *Nuevo*. Algunos paneles tienen su propio **`?`** (banco, subastas, ofertas, eventos y sprint) que abre la guía de ese tema.
+- El botón **`?`** abre el menú de guías del lugar donde estás, con la marca *Nuevo*. Algunos paneles tienen su propio **`?`** (banco, subastas, ofertas, eventos, sprint y mejoras) que abre la guía de ese tema (también las mejoras).
 - **`?guia=ID`** en la dirección fuerza una guía (por ejemplo `/explorar?guia=partida-comprar`); las pruebas automáticas la usan.
 - La pestaña **Cómo se juega** del lobby muestra todas las guías como texto, para leerlas antes de jugar sin marcarlas como vistas.
 - Cada guía se cierra con *Saltar* o Escape, que devuelve el foco a donde estabas.
@@ -223,7 +240,7 @@ Pruebas de JavaScript (hora del día, geometría 3D, guías, lobby; sin dependen
 
 | Dónde | Qué |
 |---|---|
-| `app/Economy/` | `EconomyService` (compra directa, cobro, billetera), `AuctionService` (reserva, disputa, pujas, cierre), `AuctionRules` y `ChatRules` (reglas puras), `ChatService` (enviar, leer, limpiar, avisos de sistema), `RoomNotices` (texto de los avisos del juego en la sala), `ModerationService` (reportes, ocultar, silencios, registro), ingresos, simulador |
+| `app/Economy/` | `EconomyService` (compra directa, cobro, billetera), `UpgradeService` y `Upgrades` (mejoras de propiedades: servicio y reglas puras), `AuctionService` (reserva, disputa, pujas, cierre), `AuctionRules` y `ChatRules` (reglas puras), `ChatService` (enviar, leer, limpiar, avisos de sistema), `RoomNotices` (texto de los avisos del juego en la sala), `ModerationService` (reportes, ocultar, silencios, registro), ingresos, simulador |
 | `app/Formosa/` | Importación: Overpass, clasificación, precios, geometría, barrio demo |
 | `app/Http/Controllers/` | `LobbyController` (`/mapa`), `GameScreenController` (`/partida/CÓDIGO` y `/explorar`), `MapController` (API pública del mapa), `GameController` (reclamar/cobrar), `AuctionController` (pujar, cerrar, listar), `ChatController` (leer y enviar, global y sala), `ModerationController`, `AuthController` |
 | `app/Console/Commands/` | `juego:reloj` (cierra subastas al vencer), `subastas:cerrar`, `chat:limpiar`, `moderador:asignar`, `formosa:chequeo` (revisión de la instalación), `formosa:recalcular-economia`, importador (con `--ausentes`) y simulador |

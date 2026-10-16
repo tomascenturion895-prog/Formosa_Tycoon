@@ -74,4 +74,21 @@ class CombosTest extends TestCase
         $this->assertSame(Combos::zoneKey(-26.18, -58.17, $deg), Combos::zoneKey(-26.18, -58.17, $deg));
         $this->assertNotSame(Combos::zoneKey(-26.18, -58.17, $deg), Combos::zoneKey(-26.18, -58.1725, $deg));
     }
+
+    public function test_el_peso_dos_sube_el_escalon_de_zona(): void
+    {
+        $rows = [$this->row(1, 1000), $this->row(2, 1000) + ['weight' => 2]];
+        $r = Combos::evaluate($rows);
+        $this->assertCount(1, $r['zones']);
+        $this->assertSame(3, $r['zones'][0]['count']);
+        $this->assertSame([1, 2], $r['zones'][0]['ids']);
+        $this->assertSame(200, $r['bonus']); // 10 % de 2000
+    }
+
+    public function test_sin_peso_todo_queda_igual(): void
+    {
+        $r = Combos::evaluate([$this->row(1, 1000), $this->row(2, 1000)]);
+        $this->assertSame([], $r['zones']);
+        $this->assertSame(0, $r['bonus']);
+    }
 }

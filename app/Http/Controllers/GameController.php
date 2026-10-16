@@ -7,6 +7,7 @@ use App\Economy\EconomyService;
 use App\Economy\GameException;
 use App\Economy\MatchService;
 use App\Economy\RankingService;
+use App\Economy\UpgradeService;
 use App\Models\GameMatch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class GameController extends Controller
         private readonly AuctionService $auctions,
         private readonly MatchService $matches,
         private readonly RankingService $ranking,
+        private readonly UpgradeService $upgrades,
     ) {}
 
     /** Quién soy: puntos globales, puesto en el ranking y la partida activa (si hay). */
@@ -69,6 +71,21 @@ class GameController extends Controller
         $this->touch($match);
 
         return response()->json(['ok' => true, 'match_id' => $match] + $this->economy->sell($request->user(), $match, $property, $key))->header('Cache-Control', 'no-store, private');
+    }
+
+    /** Sube una propiedad propia al nivel siguiente (el nivel 2 pide rama). Reintentable con `Idempotency-Key`. */
+    public function upgrade(Request $request, int $match, int $property): JsonResponse
+    {
+        $key = $request->header('Idempotency-Key');
+        validator(['key' => $key], ['key' => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/']])->validate();
+        $data = $request->validate([
+            'nivel' => ['required', 'integer', 'in:1,2'],
+            'rama' => ['nullable', 'string', 'in:a,b', 'required_if:nivel,2', 'prohibited_if:nivel,1'],
+        ]);
+        $this->touch($match);
+
+        return response()->json(['ok' => true, 'match_id' => $match] + $this->upgrades->upgrade($request->user(), $match, $property, (int) $data['nivel'], $data['rama'] ?? null, $key))
+            ->header('Cache-Control', 'no-store, private');
     }
 
     /** Ranking GLOBAL público por puntos. */

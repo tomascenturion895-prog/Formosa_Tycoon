@@ -20,7 +20,14 @@
             <h1 id="lobby-title">Formosa <span>Tycoon</span></h1>
             <div class="lobby-tools">
                 @if ($config['user'])
-                    <span class="lobby-who">{{ $config['user']['name'] }}</span>
+                    <div class="lobby-profile">
+                        <span id="lobby-avatar" class="avatar" aria-hidden="true"></span>
+                        <div class="lobby-profile-text">
+                            <span class="lobby-who">{{ $config['user']['name'] }}</span>
+                            {{-- Reservado para los logros del perfil (partidas ganadas, etc.): hoy sin datos, así que no se muestra. --}}
+                            <ul id="lobby-badges" class="lobby-badges" aria-label="Logros" hidden></ul>
+                        </div>
+                    </div>
                     <form method="POST" action="{{ route('logout') }}" class="lobby-logout">
                         @csrf
                         <button type="submit" class="link">Salir</button>
@@ -41,7 +48,7 @@
 
         <section id="lobby-resume" class="lobby-resume" aria-label="Tu partida" hidden>
             <p id="lobby-resume-text"></p>
-            <a id="lobby-resume-link" class="lobby-cta" href="#">Volver a tu partida</a>
+            <a id="lobby-resume-link" class="lobby-cta btn-lg" href="#">Volver a tu partida</a>
         </section>
 
         <div id="lobby-tabs" class="lobby-tabs" role="tablist" aria-label="Secciones del lobby">
@@ -67,33 +74,33 @@
                             @endfor
                         </select>
                         <label class="check"><input id="room-public" type="checkbox" checked> Sala pública (aparece en el listado)</label>
-                        <button id="room-create" type="submit" class="primary">Crear sala</button>
+                        <button id="room-create" type="submit" class="primary btn-lg">Crear sala</button>
                     </form>
                     <form id="code-form" class="lobby-card" novalidate>
                         <h2>Unirme con un código</h2>
                         <label for="code-input">Código de la sala</label>
                         <input id="code-input" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123" inputmode="text">
-                        <button id="code-join" type="submit">Unirme</button>
+                        <button id="code-join" type="submit" class="secondary btn-lg">Unirme</button>
                     </form>
                 </div>
             @else
                 <p class="lobby-guest"><a href="{{ route('login') }}">Ingresá</a> o <a href="{{ route('registro') }}">creá una cuenta</a> para crear una sala o unirte a una.</p>
             @endif
             <h2 class="lobby-sub">Salas abiertas</h2>
-            <ul id="room-list" class="room-list" aria-label="Salas abiertas"></ul>
+            <ul id="room-list" class="room-list" aria-label="Salas abiertas" aria-busy="true"></ul>
             <div id="room-empty" class="lobby-empty lobby-empty-art" hidden><span id="room-empty-art" aria-hidden="true"></span><p>Todavía no hay salas abiertas. Creá la primera.</p></div>
             <p id="lobby-msg" class="lobby-msg" role="status" hidden></p>
         </section>
 
         <section id="panel-ranking" class="lobby-panel" role="tabpanel" aria-labelledby="tab-ranking" hidden>
             <p id="lobby-ranking-note" class="lobby-note"></p>
-            <ol id="lobby-ranking-list" class="lobby-list" aria-label="Ranking global"></ol>
+            <ol id="lobby-ranking-list" class="lobby-list" aria-label="Ranking global" aria-busy="true"></ol>
         </section>
 
         @if ($config['user'])
             <section id="panel-historial" class="lobby-panel" role="tabpanel" aria-labelledby="tab-historial" hidden>
                 <p id="lobby-history-note" class="lobby-note"></p>
-                <ol id="lobby-history-list" class="lobby-list" aria-label="Mis partidas"></ol>
+                <ol id="lobby-history-list" class="lobby-list" aria-label="Mis partidas" aria-busy="true"></ol>
             </section>
         @endif
 

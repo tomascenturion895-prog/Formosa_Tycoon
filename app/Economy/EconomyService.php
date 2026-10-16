@@ -128,22 +128,42 @@ class EconomyService
         return $this->evaluateAt($match, $this->ownedRows($match->id, $userId), $ts ?? now()->getTimestamp());
     }
 
-    /** @return list<array{id: int, kind: string, lat: float, lng: float, income: int}> */
+    /**
+     * Lo que tiene un jugador, con `base` = ingreso por día de lista y su mejora (la fila final de ingreso la arma evaluateAt).
+     *
+     * @return list<array{id: int, kind: string, lat: float, lng: float, base: int, price: int, level: int, branch: ?string, upgrade_paid: int}>
+     */
     private function ownedRows(int $matchId, int $userId): array
     {
         return DB::table('match_properties as mp')->join('properties as p', 'p.id', '=', 'mp.property_id')
             ->where('mp.match_id', $matchId)->where('mp.owner_id', $userId)
-            ->get(['p.id', 'p.kind', 'p.lat', 'p.lng', 'p.income_per_day'])
-            ->map(fn ($r) => ['id' => (int) $r->id, 'kind' => $r->kind, 'lat' => (float) $r->lat, 'lng' => (float) $r->lng, 'income' => (int) $r->income_per_day])->all();
+            ->get(['p.id', 'p.kind', 'p.lat', 'p.lng', 'p.price', 'p.income_per_day', 'mp.level', 'mp.branch', 'mp.upgrade_paid'])
+            ->map(fn ($r) => $this->ownedRow($r))->all();
     }
 
-    /** Combos del jugador con el multiplicador de los eventos activos en `$ts` aplicado a cada propiedad. */
+    private function ownedRow(object $r): array
+    {
+        return [
+            'id' => (int) $r->id, 'kind' => $r->kind, 'lat' => (float) $r->lat, 'lng' => (float) $r->lng, 'base' => (int) $r->income_per_day,
+            'price' => (int) $r->price, 'level' => (int) $r->level, 'branch' => $r->branch, 'upgrade_paid' => (int) $r->upgrade_paid,
+        ];
+    }
+
+    /**
+     * Combos del jugador en `$ts`. Cada fila rinde su ingreso de lista por el multiplicador de los eventos activos, mejorada y neta de
+     * mantenimiento (ver Upgrades::rowIncome), y los combos se calculan sobre eso.
+     */
     private function evaluateAt(GameMatch $match, array $rows, int $ts, ?array $schedule = null): array
     {
         $active = MatchEvents::active($schedule ?? MatchEvents::forMatch($match), $ts);
-        if ($active !== []) {
-            $rows = array_map(fn ($r) => ['income' => (int) floor($r['income'] * MatchEvents::factor($active, $r['kind'], Combos::zoneKey((float) $r['lat'], (float) $r['lng'])))] + $r, $rows);
-        }
+        $rows = array_map(function ($r) use ($active) {
+            $factor = $active === [] ? 1.0 : MatchEvents::factor($active, $r['kind'], Combos::zoneKey($r['lat'], $r['lng']));
+
+            return [
+                'income' => Upgrades::rowIncome($r['kind'], $r['base'], $r['level'], $r['branch'], $factor),
+                'weight' => Upgrades::zoneWeight($r['kind'], $r['level'], $r['branch']),
+            ] + $r;
+        }, $rows);
 
         return Combos::evaluate($rows);
     }
@@ -312,7 +332,7 @@ class EconomyService
             ->get(['match_players.*', 'users.name as user_name']);
         // Una sola lectura de todo lo que tiene cada uno; el ingreso incluye los combos (se calcula en memoria).
         $owned = DB::table('match_properties as mp')->join('properties as p', 'p.id', '=', 'mp.property_id')->where('mp.match_id', $match->id)
-            ->get(['mp.owner_id', 'p.id', 'p.kind', 'p.lat', 'p.lng', 'p.price', 'p.income_per_day'])->groupBy('owner_id');
+            ->get(['mp.owner_id', 'p.id', 'p.kind', 'p.lat', 'p.lng', 'p.price', 'p.income_per_day', 'mp.level', 'mp.branch', 'mp.upgrade_paid'])->groupBy('owner_id');
 
         $running = $match->status === MatchStatus::Running;
         $until = $running ? $this->settleUntil($match, $now) : null;
@@ -322,13 +342,13 @@ class EconomyService
         $rows = [];
         foreach ($players as $p) {
             $mine = $owned->get($p->user_id, collect());
-            $ownedRows = $mine->map(fn ($r) => ['id' => (int) $r->id, 'kind' => $r->kind, 'lat' => (float) $r->lat, 'lng' => (float) $r->lng, 'income' => (int) $r->income_per_day])->all();
+            $ownedRows = $mine->map(fn ($r) => $this->ownedRow($r))->all();
             $income = $this->evaluateAt($match, $ownedRows, ($until ?? $now)->getTimestamp(), $schedule)['total'];
             $cash = $p->cash;
             if ($running && $p->left_at === null) {
                 $cash += $this->accrue($match, $ownedRows, $p->income_carry, $p->last_settled_at ?? $match->started_at, $until)['amount'];
             }
-            $assets = (int) $mine->sum('price');
+            $assets = (int) $mine->sum(fn ($r) => Upgrades::assetValue((int) $r->price, (int) $r->upgrade_paid));
             $debt = $debts[$p->user_id] ?? 0;
             $rows[] = [
                 'user_id' => (int) $p->user_id, 'name' => $p->user_name, 'cash' => $cash, 'reserved' => $p->reserved, 'debt' => $debt,
@@ -360,13 +380,19 @@ class EconomyService
         $standings = $this->standings($match, $now);
         $mine = collect($standings)->firstWhere('user_id', $user->id) ?? throw GameException::notInMatch();
 
-        $properties = DB::table('match_properties as mp')->join('properties as p', 'p.id', '=', 'mp.property_id')
-            ->where('mp.match_id', $match->id)->where('mp.owner_id', $user->id)->orderBy('mp.property_id')
-            ->get(['p.id', 'p.kind', 'p.price', 'p.income_per_day', 'mp.bought_at', 'mp.price_paid'])
-            ->map(fn ($r) => [
-                'id' => (int) $r->id, 'kind' => $r->kind, 'price' => (int) $r->price, 'income_per_day' => (int) $r->income_per_day,
-                'price_paid' => (int) $r->price_paid, 'bought_at' => \Carbon\Carbon::parse($r->bought_at)->getTimestampMs(),
-            ])->all();
+        $rows = collect($this->ownedRows($match->id, $user->id));
+        $discount = Upgrades::hasDiscount($rows->all());
+        $dates = DB::table('match_properties')->where('match_id', $match->id)->where('owner_id', $user->id)->pluck('bought_at', 'property_id');
+        $paid = DB::table('match_properties')->where('match_id', $match->id)->where('owner_id', $user->id)->pluck('price_paid', 'property_id');
+        $properties = $rows->sortBy('id')->values()->map(fn ($r) => [
+            'id' => $r['id'], 'kind' => $r['kind'], 'price' => $r['price'], 'income_per_day' => $r['base'],
+            'price_paid' => (int) $paid[$r['id']], 'bought_at' => \Carbon\Carbon::parse($dates[$r['id']])->getTimestampMs(),
+            'level' => $r['level'], 'branch' => $r['branch'], 'upgrade_paid' => $r['upgrade_paid'],
+            'weight' => Upgrades::zoneWeight($r['kind'], $r['level'], $r['branch']),
+            'label' => $r['level'] > 0 ? Upgrades::option($r['kind'], $r['level'], $r['branch'])['label'] : null,
+        ] + Upgrades::breakdown($r['kind'], $r['base'], $r['level'], $r['branch']) + [
+            'upgrade' => Upgrades::next($r['kind'], $r['level'], $r['branch'], $r['base'], $r['price'], $discount),
+        ])->all();
 
         return [
             'cash' => $mine['cash'],

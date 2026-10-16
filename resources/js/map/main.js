@@ -29,6 +29,7 @@ import { resolveEntry, destinationAfter } from './entry-model.js';
 import { initUiMin } from './ui-min.js';
 import { createFeed } from './feed.js';
 import { createOffersUi } from './offers-ui.js';
+import { describeOption, blockReason, sellWarning } from './upgrades-model.js';
 import { createBankUi } from './bank-ui.js';
 import { dayRemainingMs, incomePerMinute, leaderGap, gapText, afterBuy, paybackShare } from './panel-model.js';
 import { createResults } from './results.js';
@@ -467,7 +468,7 @@ function showPanel(id) {
     {
         // Pista de combo de zona: solo dentro de una partida. Las coordenadas salen del mapa (centers: [lng, lat]).
         const here = centers.get(id);
-        const mineAt = [...game.state.props.keys()].map((pid) => centers.get(pid)).filter(Boolean).map(([lng, lat]) => ({ lat, lng }));
+        const mineAt = [...game.state.props.keys()].map((pid) => [centers.get(pid), game.state.props.get(pid)?.weight ?? 1]).filter(([c]) => c).map(([[lng, lat], weight]) => ({ lat, lng, weight }));
         const hint = user && game?.isRunning() && here ? zoneHint({ lat: here[1], lng: here[0] }, mineAt, mine, cfg.combos) : '';
         $('panel-combo').textContent = hint;
         $('panel-combo').hidden = hint === '';
@@ -528,8 +529,104 @@ function showPanel(id) {
     if (offerNow?.offer && owner) {
         $('panel-owner').textContent += ' · en oferta';
     }
+    renderUpgrades(id, mine, playing, auction, Boolean(offerNow?.offer));
+    const sellNote = mine && playing && !sell.hidden ? sellWarning(game.state.props.get(id)?.level ?? 0) : '';
+    $('sell-warn').textContent = sellNote;
+    $('sell-warn').hidden = sellNote === '';
     dataTools.refresh(id);
     $('panel').hidden = false;
+}
+
+// ---------------------------------------------------------------- mejoras de una propiedad propia
+let upConfirm = null; // { id, level, branch }: esperando el segundo toque (el nivel 2 no se deshace)
+let upTimer = null;
+let upSig = '';
+
+/** Días de juego que quedan de la partida (para avisar si una mejora no llega a recuperarse). */
+function daysLeft() {
+    const m = game?.state.match;
+    return m?.ends_at ? Math.max(0, (m.ends_at - game.serverNow()) / (m.minutes_per_day * 60000)) : 0;
+}
+
+function upEl(tag, text, cls) {
+    const e = document.createElement(tag);
+    if (text !== undefined) {
+        e.textContent = text; // textContent: nunca HTML
+    }
+    if (cls) {
+        e.className = cls;
+    }
+    return e;
+}
+
+function renderUpgrades(id, mine, playing, auction, offered) {
+    const box = $('panel-upgrades');
+    const data = mine && playing ? game.state.props.get(id) : null;
+    if (!data || data.upgrade === undefined) {
+        box.hidden = true;
+        upSig = '';
+        return;
+    }
+    box.hidden = false;
+    $('up-level').textContent = data.level > 0 ? `${data.label} (nivel ${data.level})` : 'Sin mejoras todavía.';
+    $('up-gross').textContent = `${money(data.gross)} / día`;
+    $('up-maint').textContent = data.maintenance > 0 ? `− ${money(data.maintenance)} / día` : 'Sin mantenimiento';
+    $('up-net').textContent = `${money(data.net)} / día`;
+
+    const left = daysLeft();
+    const available = game?.available() ?? 0;
+    const rows = data.upgrade.map((o) => ({
+        o, reason: blockReason({ playing, mine, busy, available, cost: o.cost, inAuction: Boolean(auction), inOffer: offered }, money),
+    }));
+    const confirming = upConfirm && upConfirm.id === id ? `${upConfirm.level}${upConfirm.branch ?? ''}` : '';
+    // Sin cambios, no se vuelve a dibujar: así un toque no se pierde porque el panel se refrescó justo en ese momento.
+    const sig = JSON.stringify([id, data.level, data.branch, data.net, confirming, Math.floor(left), rows.map((r) => [r.o.cost, r.o.net, r.reason])]);
+    if (sig === upSig) {
+        return;
+    }
+    upSig = sig;
+
+    const focusedKey = document.activeElement?.closest?.('#up-options') ? document.activeElement.dataset.upKey : null;
+    const list = $('up-options');
+    list.replaceChildren();
+    if (rows.length === 0) {
+        list.append(upEl('li', 'Tiene la mejora máxima. No se puede deshacer.', 'up-done'));
+    }
+    for (const { o, reason } of rows) {
+        const key = `${o.level}${o.branch ?? ''}`;
+        const d = describeOption(o, money, left);
+        const li = upEl('li', undefined, 'up-option');
+        li.append(upEl('strong', d.title), upEl('span', d.costText), upEl('span', d.netText), upEl('span', d.maintText), upEl('span', d.paybackText));
+        if (o.branch === 'b') {
+            const effect = cfg.upgrades?.kinds?.[data.kind]?.branchBEffect;
+            if (effect) {
+                li.append(upEl('span', effect, 'up-effect'));
+            }
+        } else if (o.branch === 'a') {
+            li.append(upEl('span', 'Más ingreso, pero también más mantenimiento.', 'up-effect'));
+        }
+        if (d.warn) {
+            li.append(upEl('span', d.warn, 'up-warn'));
+        }
+        const btn = upEl('button', undefined, key === confirming ? 'up-btn confirm' : 'up-btn');
+        btn.type = 'button';
+        btn.dataset.upKey = key;
+        btn.dataset.level = String(o.level);
+        btn.dataset.branch = o.branch ?? '';
+        btn.disabled = reason !== '';
+        btn.textContent = key === confirming ? '¿Seguro? No se puede deshacer. Tocá de nuevo' : `Mejorar por ${money(o.cost)}`;
+        li.append(btn);
+        if (reason) {
+            const why = upEl('span', reason, 'up-why');
+            why.id = `up-why-${key}`;
+            btn.setAttribute('aria-describedby', why.id);
+            li.append(why);
+        }
+        list.append(li);
+    }
+    if (focusedKey !== null) {
+        (list.querySelector(`button[data-up-key="${focusedKey}"]:not(:disabled)`) ?? box).focus();
+    }
 }
 
 /** Descuento de remontada del sprint final que tengo ahora (en %, 0 si no me toca) y lo que pago con él. */
@@ -816,6 +913,48 @@ if (game) {
             showNotice(`Vendiste la propiedad por ${money(r.refund)}.`);
             setPanelMessage('');
             game.refreshSoon(() => renderAll());
+        } catch (err) {
+            setPanelMessage(explain(err), true);
+            if (!(await recoverFromMatchError(err))) {
+                await refreshAll().catch(() => {});
+            }
+        } finally {
+            busy = false;
+            renderAll(true);
+            if (selectedId === id) {
+                showPanel(id);
+            }
+        }
+    });
+
+    // Mejorar: el nivel 1 va directo; el nivel 2 (elige rama y no se deshace) pide un segundo toque. Sin diálogos del navegador.
+    $('up-options').addEventListener('click', async (ev) => {
+        const btn = ev.target.closest?.('button[data-level]');
+        const id = selectedId;
+        if (!btn || btn.disabled || id == null || busy || !game.owns(id)) {
+            return;
+        }
+        const level = Number(btn.dataset.level);
+        const branch = btn.dataset.branch || null;
+        const sure = upConfirm && upConfirm.id === id && upConfirm.level === level && upConfirm.branch === branch;
+        if (level === 2 && !sure) {
+            upConfirm = { id, level, branch };
+            clearTimeout(upTimer);
+            upTimer = setTimeout(() => { upConfirm = null; if (selectedId === id) showPanel(id); }, 6000);
+            showPanel(id);
+            return;
+        }
+        upConfirm = null;
+        clearTimeout(upTimer);
+        busy = true;
+        setPanelMessage('Mejorando…');
+        try {
+            const r = await game.upgrade(id, level, branch);
+            sound.play('compra');
+            effects.floatText($('balance'), `-${money(r.cost)}`);
+            showNotice(`Mejoraste la propiedad. Ahora tu ingreso total es ${money(r.income_per_day)} por día.`);
+            setPanelMessage('');
+            await game.refresh().catch(() => {});
         } catch (err) {
             setPanelMessage(explain(err), true);
             if (!(await recoverFromMatchError(err))) {
