@@ -1,0 +1,72 @@
+:root {
+    --ink: #1f2933;
+    --ink-soft: #52606d;
+    --card: #ffffff;
+    --line: #d9d4c4;
+    --accent: #1f6feb;
+    --danger: #b42318;
+    --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink);
+    background: #f3f1ea;
+}
+
+.auth {
+    width: 100%;
+    max-width: 400px;
+    padding: 28px 24px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
+}
+
+.auth-brand { display: inline-block; margin-bottom: 4px; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); text-decoration: none; }
+.auth h1 { margin: 0 0 18px; font-size: 1.5rem; }
+
+label { display: block; margin: 14px 0 4px; font-weight: 600; font-size: 0.9rem; }
+.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+
+input[type='text'], input[type='email'], input[type='password'] {
+    width: 100%;
+    padding: 11px 12px;
+    font: inherit;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+}
+input[type='checkbox'] { width: 18px; height: 18px; }
+
+button[type='submit'] {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent);
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.ayuda { margin: 4px 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+.error { margin: 6px 0 0; font-size: 0.85rem; color: var(--danger); }
+.auth-alt { margin: 16px 0 0; font-size: 0.9rem; color: var(--ink-soft); }
+.auth-alt a { color: var(--accent); }
+
+input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+input[aria-describedby*='error'] { border-color: var(--danger); }
+
+.ok { margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: #e6f4ea; color: #1e5b32; font-size: 0.9rem; }
+.ayuda a { color: var(--accent); }
+.trampa { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }

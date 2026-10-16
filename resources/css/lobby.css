@@ -1,0 +1,80 @@
+/* Lobby (/mapa). Reusa los estilos de formularios, salas y listas de map.css (clases .dialog, .lobby-*, .room-*, .row-*) y solo
+   agrega lo que cambia al ser una página y no un diálogo sobre el mapa. */
+.lobby-body {
+    min-height: 100%;
+    height: auto;
+    padding: 24px 16px;
+    background: #ebe8e0;
+}
+
+.lobby-page {
+    width: min(860px, 100%);
+    max-height: none;
+    margin: 0 auto;
+    overflow: visible;
+}
+
+.lobby-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.lobby-head h1 { margin: 0; font-size: 1.5rem; }
+.lobby-head h1 span { color: var(--accent); }
+.lobby-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.lobby-who { font-weight: 700; }
+.lobby-logout { margin: 0; }
+.lobby-page .link, .lobby-link { color: var(--accent); font: inherit; background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.lobby-page button.lobby-help { width: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
+
+.lobby-resume {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    margin: 12px 0 0; padding: 12px 14px; border-radius: 12px; background: #fff6dc; border: 1px solid #e8c35b;
+}
+.lobby-resume[hidden] { display: none; }
+.lobby-resume p { margin: 0; font-weight: 600; }
+.lobby-cta {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 10px;
+    background: var(--accent); color: #fff; font-weight: 700; text-decoration: none;
+}
+.lobby-cta:focus-visible { outline: 3px solid #ffb703; outline-offset: 2px; }
+
+.lobby-tabs { display: flex; gap: 4px; margin: 16px 0 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.lobby-page .lobby-tab {
+    flex: none; padding: 10px 16px; min-height: 44px; border: 0; border-bottom: 3px solid transparent; border-radius: 8px 8px 0 0;
+    background: none; font: inherit; font-weight: 700; color: var(--ink-soft); cursor: pointer;
+}
+.lobby-page .lobby-tab[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--accent); }
+.lobby-page .lobby-tab:hover { background: #f5f3ee; }
+
+.lobby-panel { padding-top: 14px; }
+.lobby-panel[hidden] { display: none; }
+.lobby-note { margin: 0 0 8px; color: var(--ink-soft); font-size: 0.88rem; line-height: 1.4; }
+.lobby-page .lobby-card h2, .lobby-sub { margin: 0 0 6px; font-size: 0.95rem; }
+.lobby-sub { margin-top: 16px; }
+
+/* Filas de ranking e historial: las mismas que el cajón del mapa, en colores de tarjeta clara. */
+.lobby-list { list-style: none; margin: 0; padding: 0; }
+.lobby-list li + li { border-top: 1px solid #f0eee8; }
+.lobby-list li > div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 9px 8px; border-radius: 8px; }
+.lobby-list li.me > div { background: #fff6dc; }
+.lobby-list .row-pos, .lobby-list .row-sub, .lobby-list .row-value small, .lobby-list .drawer-empty { color: var(--ink-soft); }
+.lobby-list .row-title, .lobby-list .row-value { color: var(--ink); }
+
+.lobby-foot { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+@media (max-width: 640px) {
+    .lobby-body { padding: 0; }
+    .lobby-page { border-radius: 0; min-height: 100vh; }
+}
+
+/* ---------- Cómo se juega ---------- */
+.lobby-manual { display: flex; flex-direction: column; gap: 18px; }
+.manual-place { margin: 0 0 6px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+.manual-guide { border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.manual-guide + .manual-guide { margin-top: 8px; }
+.manual-guide summary { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; cursor: pointer; list-style: none; }
+.manual-guide summary::-webkit-details-marker { display: none; }
+.manual-guide summary:focus-visible { outline: 3px solid #ffb703; outline-offset: 2px; border-radius: 10px; }
+.manual-guide summary strong::before { content: '▸'; display: inline-block; width: 1.1em; color: var(--accent); }
+.manual-guide[open] summary strong::before { content: '▾'; }
+.manual-summary { font-size: 0.85rem; color: var(--ink-soft); padding-left: 1.1em; }
+.manual-steps { margin: 0; padding: 0 14px 12px 32px; display: flex; flex-direction: column; gap: 10px; }
+.manual-steps h3 { margin: 0 0 2px; font-size: 0.95rem; }
+.manual-steps p { margin: 0; font-size: 0.9rem; line-height: 1.45; }

@@ -1,0 +1,43 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Handle X-XSRF-Token Header
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# ------------------------------------------------------------------ rendimiento (Apache / Laragon)
+# Comprime JavaScript, CSS, JSON y HTML: el juego baja ~0,45 MB en vez de ~1,6 MB.
+# (/api/propiedades ya sale comprimido desde PHP; Apache no lo vuelve a comprimir.)
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript text/javascript application/json image/svg+xml
+</IfModule>
+
+# Los archivos de /build llevan un hash en el nombre (main-Ck07Zl8S.js): cambian de nombre en cada `npm run build`,
+# así que el navegador los puede guardar un año sin preguntar.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|mjs|css|woff2?)$">
+        Header set Cache-Control "public, max-age=31536000, immutable" "expr=%{REQUEST_URI} =~ m#^/build/assets/#"
+    </FilesMatch>
+</IfModule>
+<IfModule mod_mime.c>
+    AddType application/javascript .mjs
+</IfModule>

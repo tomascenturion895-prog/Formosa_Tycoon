@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Formosa Tycoon</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9e5e"/><stop offset="1" stop-color="#e0507a"/></linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#bg)"/>
+  <circle cx="40" cy="30" r="12" fill="#fff2b0"/>
+  <path d="M2 46h60v1c0 8-7 15-15 15H17C9 62 2 55 2 47z" fill="#1d4f7a"/>
+  <path d="M2 46h60" stroke="#6fb6ee" stroke-width="2"/>
+  <rect x="14" y="26" width="11" height="22" fill="#1f2a44"/><rect x="26" y="33" width="9" height="15" fill="#2c3a5e"/>
+  <path d="M16 30h2v2h-2zM20 30h2v2h-2zM16 35h2v2h-2zM20 35h2v2h-2zM16 40h2v2h-2zM20 40h2v2h-2zM28 38h2v2h-2zM28 43h2v2h-2z" fill="#ffd36b"/>
+  <path d="M51 48c0-8 1-15 2-20" stroke="#5b3a29" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M53 28c-5-1-8 1-10 4M53 28c4-3 8-3 11-1M53 28c-3-4-3-7-1-10M53 28c3-4 6-5 9-4" stroke="#2f7a3f" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+</svg>
